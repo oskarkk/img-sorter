@@ -6,26 +6,60 @@
 # https://zetcode.com/gui/pyqt5/eventssignals/
 # https://wiki.python.org/moin/PyQt/Adding%20tab-completion%20to%20a%20QLineEdit
 
-from utils import gl
-import sys
+from os import path, read
+from glob import glob
 
 #import PyQt5.QtWidgets as qt
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget, QMainWindow, QLabel, QCompleter, QLineEdit, QApplication
+from PyQt5.QtWidgets import QWidget, QMainWindow, QLabel, QCompleter, QLineEdit, QApplication, QFileDialog 
 from PyQt5.QtCore import QEvent, QTimer, Qt
 #from time import sleep
 #from PyQt5.QtCore import QRect
 
+
+def gl(s):
+  return sorted(glob(s))
+
+def read_cfg(filename):
+    cfg = {}
+
+    if path.exists(filename):
+        with open(filename, 'r') as f:
+            for line in f:
+                kv = line.strip().split('=',1)
+                cfg[kv[0]] = kv[1]
+    else:
+        with open(filename, 'w') as f:
+            pass
+    
+    return cfg
+
+def save_cfg(cfg, filename):
+    with open(filename, 'w') as f:
+        for k, v in cfg.items():
+            f.write(k + '=' + v + '\n')
+
+cfg_file = 'config.txt'
+cfg = read_cfg(cfg_file)
+
+
 app = QApplication([])
 #window = QtWidgets.QWidget()
-
-print(sys.argv[1])
-file = gl(sys.argv[1])[0]
 
 class Window(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(Window, self).__init__(*args, **kwargs)
         w = QWidget()
+
+        if 'source' not in cfg:
+            cfg['source'] = QFileDialog.getExistingDirectory(self, "Choose a source folder", None, QFileDialog.ShowDirsOnly)
+        if 'destination' not in cfg:
+            cfg['destination'] = QFileDialog.getExistingDirectory(self, "Choose a destination folder", None, QFileDialog.ShowDirsOnly)
+
+        save_cfg(cfg, cfg_file)
+        print(cfg)
+
+        file = gl(cfg['source']+"\*.jpg")[0]
 
         self.bitmap = QtGui.QImage(file)
         self.bitmap = self.bitmap.scaledToWidth(500, Qt.SmoothTransformation)
@@ -34,11 +68,12 @@ class Window(QMainWindow):
         self.label.setPixmap(QtGui.QPixmap.fromImage(self.bitmap))
         self.label.setAlignment(Qt.AlignTop)
 
+
         # scroll
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.shift)
-        QTimer.singleShot(2000, lambda: self.timer.start(10))
-        QTimer.singleShot(5000, self.timer.stop)
+        #self.timer = QTimer()
+        #self.timer.timeout.connect(self.shift)
+        #QTimer.singleShot(2000, lambda: self.timer.start(10))
+        #QTimer.singleShot(5000, self.timer.stop)
 
         self.comp = QCompleter(['pap', 'spacex'])
         self.comp.setCaseSensitivity(Qt.CaseInsensitive)
